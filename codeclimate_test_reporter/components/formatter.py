@@ -4,7 +4,7 @@ from ..__init__ import __version__ as reporter_version
 from .ci import CI
 from .file_coverage import FileCoverage
 from .git_command import GitCommand
-
+import os
 
 class Formatter:
     def __init__(self, xml_report_path, debug=False):
@@ -53,15 +53,22 @@ class Formatter:
         for file_node in self.__file_nodes():
             if self.debug:
                 print("Processing file path=%s" % file_node.get("filename"))
-
             file_coverage = FileCoverage(file_node)
             payload = file_coverage.payload()
             source_files.append(payload)
 
         return source_files
 
+    def __source_dir(self):
+        source_dir=self.root.find("sources/source").text
+        return os.path.relpath(source_dir,os.getcwd())
+
     def __file_nodes(self):
-        return self.root.findall("packages/package/classes/class")
+        source_dir=self.__source_dir()
+        file_nodes=self.root.findall("packages/package/classes/class")
+        if source_dir:
+            [ f.set( "filename", os.path.join( source_dir, f.get("filename") ) ) for f in file_nodes ]
+        return file_nodes
 
     def __timestamp(self):
         return self.root.get("timestamp")
